@@ -22,5 +22,9 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "dependencies": {
+    "eventEmitter": "~4.2.11",
+    "q": "1.0.1"
+  }
 }
