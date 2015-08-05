@@ -1,12 +1,16 @@
 function sendMessage(evtName, data) {
+	"use strict";
 	var out = [ evtName ];
-	if (typeof data !== "undefined") out.push(data);
+	if (typeof data !== "undefined") {
+		out.push(data);
+	}
 	postMessage(out);
 }
 
 var defined = null;
 
 function define(dependencies, definition) {
+	"use strict";
 	if (defined !== null) {
 		return sendMessage("error", "You can define your worker only once !");
 	}
@@ -22,7 +26,7 @@ function define(dependencies, definition) {
 			definition.loadSync();
 			sendMessage("loaded");
 		} catch (error) {
-			sendMessage("error", error)
+			sendMessage("error", error);
 		}
 	} else if (definition.load && typeof definition.load === "function") {
 		definition.load(function(error) {
@@ -41,14 +45,23 @@ function define(dependencies, definition) {
 
 var handler = {
 	load : function(message) {
-		importScripts(message);
+		"use strict";
+		try {
+			importScripts(message);
+		} catch (e) {
+			sendMessage("error", {
+				name : e.name,
+				message : e.message
+			});
+		}
 	},
 
 	work : function(args) {
+		"use strict";
 		
 		var progressCallback = function(progress) {
 			sendMessage("progress", progress);
-		}
+		};
 
 		sendMessage("startWorking");
 		if (defined.workSync && typeof defined.workSync === "function") {
@@ -70,15 +83,16 @@ var handler = {
 			return sendMessage("error", "No work or workSync defined in the worker");
 		}
 	}
-}
+};
 
 self.onmessage = function(e) {
+	"use strict";
 	var message = e.data;
 	var messageName = message[0];
 	var data = message[1];
 	if (typeof handler[messageName] === "function") {
 		handler[messageName](data);
 	}
-}
+};
 
 sendMessage("preloaded");

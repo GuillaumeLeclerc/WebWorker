@@ -1,4 +1,5 @@
 function WebWorker(script) {
+	"use strict";
 	var that = this;
 	var booked = false;
 	EventEmitter.call(that);
@@ -9,15 +10,17 @@ function WebWorker(script) {
 
 	var sendMessage = function (evtName, data) {
 		var out = [ evtName ];
-		if (typeof data !== "undefined") out.push(data);
+		if (typeof data !== "undefined") {
+			out.push(data);
+		}
 		that.worker.postMessage(out);
-	}
+	};
 
 	var load = function() {
 		console.log("PRELOAEDDED");
 		that.state = "preloaded";
 		sendMessage("load", WebWorker.workersPath + that.script);
-	}
+	};
 
 	var ready = function() {
 		that.state = "ready";
@@ -26,34 +29,34 @@ function WebWorker(script) {
 		} else {
 			dequeueTask();
 		}
-	}
+	};
 
 	var finished = function(messageData) {
 		that.emitEvent("resultAvailable", [messageData]);
 		ready();
-	}
+	};
 
 	var error = function(error) {
 		if (that.state !== "busy") {
 			that.state = "error";
-			throw error;
+			that.emitEvent("error", [error]);
 		} else {
 			that.emitEvent("runError", [error]);
 			ready();
 		}
-	}
+	};
 
 	var progress = function(data) {
 		that.emitEvent("progress", [data]);
-	}
+	};
 
 	that.book = function() {
 		booked = true;
-	}
+	};
 
 	that.isReady = function() {
 		return that.state === "ready" && that.taskQueue.length === 0 && !booked;
-jj	}
+	};
 
 	that.worker.addEventListener("message", function(e) {
 		var message = e.data;
@@ -82,7 +85,7 @@ jj	}
 				finished(messageData);
 			   break;
 			default :
-			   that.emitEvent(messageName, [messageData])
+			   that.emitEvent(messageName, [messageData]);
 		}
 	});
 
@@ -115,7 +118,7 @@ jj	}
 			that.removeListener("progress", progress);
 			defered.reject(error);
 		});
-	}
+	};
 
 	that.doWork = function(work, progressCallback) {
 		booked = false;
@@ -130,7 +133,7 @@ jj	}
 		that.taskQueue.push(task);
 		dequeueTask();
 		return defered.promise;
-	}
+	};
 }
 
 WebWorker.libPath = "workers/";
@@ -140,6 +143,7 @@ WebWorker.prototype = Object.create(EventEmitter.prototype);
 WebWorker.prototype.constructor = WebWorker;
 
 function WorkerPool(minSize, maxSize, script) {
+	"use strict";
 	var that = this;
 	
 	var workers = [];
@@ -155,14 +159,14 @@ function WorkerPool(minSize, maxSize, script) {
 			worker.book();
 			resolved.resolve(worker);
 		}
-	}
+	};
 
 	var createWorker = function() {
 		var w = new WebWorker(script);
 		w.addListener("ready", workerReadyCallback);
 		workers.push(w);
 		return w;
-	}
+	};
 
 	var freeWorker = function() {
 		for (var i in workers) {
@@ -172,7 +176,7 @@ function WorkerPool(minSize, maxSize, script) {
 			}
 		}
 		return undefined;
-	}
+	};
 
 	var getWorker = function() {
 		var defered = Q.defer();
@@ -192,7 +196,7 @@ function WorkerPool(minSize, maxSize, script) {
 			waitQueue.push(defered);
 		}
 		return defered.promise;
-	}
+	};
 
 	for (var i = 0 ; i < minSize ; ++i) {
 		createWorker();
@@ -205,7 +209,7 @@ function WorkerPool(minSize, maxSize, script) {
 		}).fail(function(error) {
 			throw error;
 		});
-	}
+	};
 
 
 }
