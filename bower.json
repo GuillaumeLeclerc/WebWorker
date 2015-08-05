@@ -1,0 +1,26 @@
+{
+  "name": "WebWorker",
+  "version": "0.0.0",
+  "homepage": "https://github.com/GuillaumeLeclerc/WebWorker",
+  "authors": [
+    "Guillaume Leclerc <guillaume.leclerc@epfl.ch>"
+  ],
+  "description": "Allow you to create Workers (threads) and dynamically allocated Worker Pools (ThreadPool)",
+  "main": "src/WebWorker.js",
+  "keywords": [
+    "javascript",
+    "webworker",
+    "multi-threading",
+    "parallel",
+    "thread",
+    "threadPool"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
