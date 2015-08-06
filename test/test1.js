@@ -101,26 +101,28 @@ function testQueued (testId, assert) {
 	var AlltaskPushed = false;
 	var taskDone = [];
 	var w = new WebWorker("test1-"+testId + ".js");
+	var checkHandler = function(it) {
+		taskDone.push(false);
+		w.doWork(0).then(function(result) {
+			taskDone[it] = true;
+			assert.ok(AlltaskPushed, "Call to doWork should not be blocking");
+			for (var i = 0 ; i < nbTasks ; ++i) {
+				if (i < it) {
+					assert.ok(taskDone[i]);
+				} else if (i === it) {
+					taskDone[it] = true;
+				} else {
+					assert.notOk(taskDone[i]);
+				}
+			}
+			if (it === nbTasks - 1) {
+				done();
+			}
+		});
+	};
+
 	for (var i = 0 ; i < nbTasks ; ++i) {
-		(function (it) {
-			taskDone.push(false);
-			w.doWork(0).then(function(result) {
-				taskDone[it] = true;
-				assert.ok(AlltaskPushed, "Call to doWork should not be blocking");
-				for (var i = 0 ; i < nbTasks ; ++i) {
-					if (i < it) {
-						assert.ok(taskDone[i]);
-					} else if (i == it) {
-						taskDone[it] = true;
-					} else {
-						assert.notOk(taskDone[i]);
-					}
-				}
-				if (it == nbTasks - 1) {
-					done();
-				}
-			});
-		})(i);
+		checkHandler(i);
 	}
 	AlltaskPushed = true;
 }
