@@ -1,12 +1,11 @@
 module.exports = function(grunt) {
-	"use strict";
+  "use strict";
 
   grunt.initConfig({
     jshint: {
-      files: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
+      files: ['Gruntfile.js', 'src/**/*.js', 'test/*.js'],
       options: {
-	    strict : true,
-		undef : true,
+	    strict : true, undef : true,
 		curly : true,
 		eqeqeq : true,
 		maxcomplexity : 10,
@@ -22,12 +21,13 @@ module.exports = function(grunt) {
 			console : true,
 			WebWorker : true,
 			define : true,
+			PRODUCTION : true
         },
       }
     },
     watch: {
       files: ['<%= jshint.files %>'],
-      tasks: ['jshint']
+      tasks: ['build-dev']
     },
 	connect : {
 		server : {
@@ -69,6 +69,30 @@ module.exports = function(grunt) {
 				]
 			}
 		}
+	},
+	uglify : {
+		build : {
+			files : {
+				"build/WebWorker.js" : ["src/WebWorker.js"],
+				"build/workerCode.js" : ["src/workerCode.js"]
+			},
+			options : {
+				compress : {
+					drop_console : true
+				}
+			}
+		},
+		dev : {
+			files : {
+				"build/WebWorker.js" : ["src/WebWorker.js"],
+				"build/workerCode.js" : ["src/workerCode.js"]
+			},
+			options : {
+				sourceMap : true,
+				sourceMapIncludeSources : true,
+				beautify : true
+			}
+		}
 	}
   });
 
@@ -77,9 +101,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-qunit');
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-saucelabs');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
 
   grunt.registerTask('default', ['jshint']);
-  grunt.registerTask('test', ['jshint', 'connect', 'qunit']);
-  grunt.registerTask('test-full', ['jshint', 'connect', 'qunit', 'saucelabs-qunit']);
+  grunt.registerTask('test', ['build', 'connect', 'qunit']);
+  grunt.registerTask('build-dev', ['jshint', 'uglify:dev']);
+  grunt.registerTask('build', ['jshint', 'uglify:build']);
+  grunt.registerTask('test-full', ['test', 'saucelabs-qunit']);
 
 };

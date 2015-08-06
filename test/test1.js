@@ -30,7 +30,7 @@ QUnit.testStart(function(testDetails){
   });
 });
 
-WebWorker.libPath = "./lib/";
+WebWorker.libPath = "./build/";
 WebWorker.workersPath = "/test/workers/";
 
 QUnit.test("Qunit working", function(assert) {
