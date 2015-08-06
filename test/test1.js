@@ -45,6 +45,7 @@ QUnit.test("A worker with wrong file name should fire an error event", function(
 	w.addListener("error", function(error) {
 		assert.ok(error.name.length > 0 ,  "The error has a name");
 		assert.ok(error.message.length > 0, "The error has a message");
+		assert.equal(w.state, "error", "The state of the worker is : error");
 		done();
 	});
 });
@@ -132,7 +133,37 @@ QUnit.test("Tasks are queued (short Async Version)", function(assert) {
 	testQueued("c", assert);
 });
 
-QUnit.test("Tasks are queued (short Sync Version)", function(assert) {
+QUnit.test("Tasks are queued (Long Sync Version)", function(assert) {
 	"use strict";
 	testQueued("b", assert);
+});
+
+QUnit.test("Progress funciton is working", function(assert) {
+	"use strict";
+	var w = new WebWorker("test1-d.js");
+	var done = assert.async();
+	var nbProgess = Math.round(Math.random()*19) + 1;
+	var lastProgress = -1;
+	var result = w.doWork(nbProgess, function progress(p) {
+		assert.equal(p, lastProgress + 1, "Progress call are in order");
+		lastProgress = p;
+	});
+	result.then(function(res) {
+		assert.equal(res, nbProgess, "The number of progress was correctly passed to the worker");
+		assert.equal(lastProgress, nbProgess - 1, "All the progress function were called");
+		done();
+	});
+});
+
+QUnit.test("Not setting a progress callback on a worker that send progress will not cause an exception", function(assert) {
+	"use strict";
+	var w = new WebWorker("test1-d.js");
+	var done = assert.async();
+	var nbProgess = Math.round(Math.random()*19) + 1;
+	var result = w.doWork(nbProgess);
+	result.then(function(res) {
+		assert.equal(res, nbProgess, "The number of progress was correctly passed to the worker");
+		done();
+	});
+
 });
