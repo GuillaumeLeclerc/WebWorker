@@ -94,7 +94,7 @@ QUnit.test("Arguments are passed to a an async work callback", function(assert) 
 	});
 });
 
-function testQueued (testId, assert) {
+var  testQueued  = function (testId, assert) {
 	"use strict";
 	var done = assert.async();
 	var nbTasks = 10;
@@ -125,10 +125,14 @@ function testQueued (testId, assert) {
 		checkHandler(i);
 	}
 	AlltaskPushed = true;
-}
+};
 
-QUnit.test("Tasks are queued (short Async Version)", testQueued.bind(null, "c"));
+QUnit.test("Tasks are queued (short Async Version)", function(assert) {
+	"use strict";
+	testQueued("c", assert);
+});
 
-QUnit.test("Tasks are queued (short Sync Version)", testQueued.bind(null, "b"));
-
-
+QUnit.test("Tasks are queued (short Sync Version)", function(assert) {
+	"use strict";
+	testQueued("b", assert);
+});
