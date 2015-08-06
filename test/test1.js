@@ -6,8 +6,7 @@ var testName;
 
 QUnit.done(function (test_results) {
 	"use strict";
-  var tests = [];
-  for(var i = 0, len = log.length; i < len; i++) {
+  var tests = []; for(var i = 0, len = log.length; i < len; i++) {
     var details = log[i];
     tests.push({
       name: details.name,
@@ -94,5 +93,40 @@ QUnit.test("Arguments are passed to a an async work callback", function(assert) 
 		done();
 	});
 });
+
+function testQueued (testId, assert) {
+	"use strict";
+	var done = assert.async();
+	var nbTasks = 10;
+	var AlltaskPushed = false;
+	var taskDone = [];
+	var w = new WebWorker("test1-"+testId + ".js");
+	for (var i = 0 ; i < nbTasks ; ++i) {
+		(function (it) {
+			taskDone.push(false);
+			w.doWork(0).then(function(result) {
+				taskDone[it] = true;
+				assert.ok(AlltaskPushed, "Call to doWork should not be blocking");
+				for (var i = 0 ; i < nbTasks ; ++i) {
+					if (i < it) {
+						assert.ok(taskDone[i]);
+					} else if (i == it) {
+						taskDone[it] = true;
+					} else {
+						assert.notOk(taskDone[i]);
+					}
+				}
+				if (it == nbTasks - 1) {
+					done();
+				}
+			});
+		})(i);
+	}
+	AlltaskPushed = true;
+}
+
+QUnit.test("Tasks are queued (short Async Version)", testQueued.bind(null, "c"));
+
+QUnit.test("Tasks are queued (short Sync Version)", testQueued.bind(null, "b"));
 
 
