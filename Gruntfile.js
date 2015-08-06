@@ -64,11 +64,8 @@ module.exports = function(grunt) {
 					["Windows 10", "firefox", "39"],
 					["Windows 10", "Internet Explorer", "11"],
 					["Windows 7", "Internet Explorer", "10"],
-					["OS X 10.10", "iphone", "8"],
-					["OS X 10.10", "iphone", "7.1"],
 					["OS X 10.11", "safari", "8.1"],
 					["OS X 10.8", "safari", "6"],
-
 				]
 			}
 		}
