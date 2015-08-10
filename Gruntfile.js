@@ -21,7 +21,8 @@ module.exports = function(grunt) {
 			console : true,
 			WebWorker : true,
 			define : true,
-			PRODUCTION : true
+			PRODUCTION : true,
+			WorkerPool : true
         },
       }
     },
@@ -40,6 +41,7 @@ module.exports = function(grunt) {
 	qunit : {
 		all : {
 			options : {
+				timeout : 60000,
 				urls : [
 					"http://localhost:9999/test/test1.html"
 				]
@@ -55,7 +57,7 @@ module.exports = function(grunt) {
 					"http://localhost:9999/test/test1.html"
 				],
 				testname : "Main test of WebWorker on saucelabs",
-				'max-duration' : 1000,
+				statusCheckAttempts : 500,
 				browsers : [
 					["Linux", "chrome", "dev"],
 					["Linux", "firefox", "dev"],
@@ -88,6 +90,8 @@ module.exports = function(grunt) {
 				"build/workerCode.js" : ["src/workerCode.js"]
 			},
 			options : {
+				mangle : false,
+				compress : false,
 				sourceMap : true,
 				sourceMapIncludeSources : true,
 				beautify : true
