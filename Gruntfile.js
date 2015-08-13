@@ -60,12 +60,12 @@ module.exports = function(grunt) {
 				statusCheckAttempts : 500,
 				browsers : [
 					["Linux", "chrome", "dev"],
-					["Linux", "firefox", "dev"],
+					["Linux", "firefox", "39"],
 					["Linux", "android", "4.4"],
 					["Linux", "android", "5.1"],
 					["Windows 10", "firefox", "39"],
-					["Windows 10", "Internet Explorer", "11"],
-					["Windows 7", "Internet Explorer", "10"],
+					//["Windows 10", "Internet Explorer", "11"],
+					//["Windows 7", "Internet Explorer", "10"],
 					["OS X 10.11", "safari", "8.1"],
 					["OS X 10.8", "safari", "6"],
 				]
