@@ -2,6 +2,11 @@ function WebWorker(script) {
 	"use strict";
 	var that = this;
 	var booked = false;
+	var eventsRegistered = false;
+	var eventQueue = {};
+	var nextTaskId = 0;
+	var runningTask = -1;
+
 	EventEmitter.call(that);
 	that.script = script || "simulate.js";
 	that.state = "loading";
@@ -15,15 +20,24 @@ function WebWorker(script) {
 		that.worker.postMessage(out);
 	};
 
+	var newTaskId = function() {
+		return ++nextTaskId;
+	};
+
 	var load = function() {
 		console.log("PRELOAEDDED");
 		that.state = "preloaded";
 		sendMessage("load", WebWorker.workersPath + that.script);
 	};
 
+	var resetEvents = function() {
+		eventsRegistered = false;
+	};
+
 	var ready = function() {
 		console.log("Worker ready");
 		that.state = "ready";
+		runningTask = -1;
 		if (that.isReady()) {
 			that.emitEvent("ready", [that]);
 		} else {
@@ -33,6 +47,7 @@ function WebWorker(script) {
 
 	var finished = function(messageData) {
 		that.emitEvent("resultAvailable", [messageData]);
+		resetEvents();
 		ready();
 	};
 
@@ -43,6 +58,7 @@ function WebWorker(script) {
 			that.emitEvent("error", [error]);
 		} else {
 			that.emitEvent("runError", [error]);
+			resetEvents();
 			ready();
 		}
 	};
@@ -62,9 +78,30 @@ function WebWorker(script) {
 		}
 	};
 
+	var eventsRegisteredCallback = function() {
+		eventsRegistered = true;
+		processQueueEvent();
+	};
+
 	that.terminate = function () {
 		that.worker.terminate();
 		that.state = "terminated";
+	};
+
+	var processQueueEvent = function() {
+		while (eventsRegistered &&  eventQueue[runningTask] && eventQueue[runningTask].length > 0) {
+			var event = eventQueue[runningTask].shift();
+			sendMessage(event.name, event.data);
+		}	
+	};
+
+	var sendEventToTask = function(taskId, message, value) {
+		eventQueue[taskId] = eventQueue[taskId] || [];
+		eventQueue[taskId].push({
+			name : "custom-" + message,
+			data : value
+		});
+		processQueueEvent();
 	};
 
 	that.book = function() {
@@ -102,6 +139,9 @@ function WebWorker(script) {
 				console.log("finished working");
 				finished(messageData);
 			   break;
+			case "eventsRegistered" : 
+			   eventsRegisteredCallback();
+			   break;
 			default :
 			   that.emitEvent(messageName, [messageData]);
 		}
@@ -120,6 +160,10 @@ function WebWorker(script) {
 		var defered = task.defered;
 		var progress = task.progressCallback;
 		var methodName = task.methodName;
+		var taskId = task.id;
+
+
+		runningTask = taskId;
 
 		sendMessage("work", [methodName, work]);
 
@@ -141,9 +185,11 @@ function WebWorker(script) {
 
 	that.doWork = function(methodName, work, progressCallback) {
 		booked = false;
+		var taskId = newTaskId();
 		var defered = Q.defer();
 
 		var task = {
+			id : taskId,
 			methodName : methodName,
 			work : work,
 			progressCallback : progressCallback,
@@ -152,7 +198,14 @@ function WebWorker(script) {
 
 		that.taskQueue.push(task);
 		dequeueTask();
-		return defered.promise;
+
+		var toReturn = defered.promise;
+		toReturn.sendEvent = function(name, message) {
+			console.log(message, work, taskId);
+			sendEventToTask(taskId, name, message);
+		};
+
+		return toReturn;
 	};
 }
 
@@ -257,11 +310,26 @@ function WorkerPool(minSize, maxSize, script) {
 
 	 that.doWork = function() {
 		var args = arguments;
-		return getWorker().then(function(worker) {
-			return worker.doWork.apply(worker, args);
+		var eventQueue = [];
+		var toReturn = getWorker().then(function(worker) {
+			var promise = worker.doWork.apply(worker, args);
+			while (eventQueue.length > 0) {
+				var event = eventQueue.shift();
+				promise.sendEvent(event.name, event.data);
+			}
+			return promise;
 		}).fail(function(error) {
 			throw error;
 		});
+
+		toReturn.sendEvent = function(name , data) {
+			eventQueue.push({
+				name : name,
+				data : data
+			});
+		};
+
+		return toReturn;
 	};
 
 	that.doWorkBatch = function(methodName, jobs) {

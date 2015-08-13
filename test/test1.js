@@ -225,3 +225,49 @@ QUnit.test("We can send batch to a worker pool", function(assert) {
 	});
 });
 
+QUnit.test("We can send custom event to async jobs", function(assert) {
+	"use strict";
+	var done = assert.async();
+	var data = Math.random();
+	var w = new WebWorker("test1-f.js");
+	var task1 = w .doWork("work");
+	task1.then(function(result) {
+		assert.equal(result, data, "the data should be the same as transmitted");
+		done();
+	});
+	task1.sendEvent("event", data);
+});
+
+QUnit.test("Custom events are cleared between jobs", function(assert) {
+	"use strict";
+	var done = assert.async();
+	var w = new WebWorker("test1-g.js");
+	var w1 = w.doWork("work", 1);
+	var w2 = w.doWork("work", 2);
+	w1.sendEvent("event", 1);
+	w2.sendEvent("event", 2);
+	Q.all([w1, w2]).then(function(results) {
+		assert.deepEqual(results, [[1, 1], [2,2]], "the data should be corretly passed");
+		done();
+	});
+});
+
+QUnit.test("We can send custom event to async jobs in a Worker Pool", function(assert) {
+	"use strict";
+	var done = assert.async();
+	var pool = new WorkerPool(1, 2, "test1-h.js");
+	var w1 = pool.doWork("work", 1);
+	var w2 = pool.doWork("work", 2);
+	var w3 = pool.doWork("work", 3);
+	w1.sendEvent("event",1);
+	w2.sendEvent("event",2);
+	w3.sendEvent("event",3);
+
+	Q.all([w1, w2, w3]).then(function(results) {
+		assert.deepEqual(results, [[1,1], [2,2], [3,3]], "the events should be sent to the correct jobs");
+		done();
+	});
+
+});
+
+

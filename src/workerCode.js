@@ -9,6 +9,8 @@ function sendMessage(evtName, data) {
 
 var defined = null;
 
+var eventListeners = {};
+
 function define(dependencies, definition) {
 	"use strict";
 	if (defined !== null) {
@@ -80,11 +82,26 @@ var handler = {
 			sendMessage("progress", progress);
 		};
 
+		var registerEvents = function(events) {
+			for (var i in events) {
+				if (typeof events[i] === "function") {
+					eventListeners["custom-"+i] = events[i];
+				}
+			}
+			sendMessage("eventsRegistered");
+		};
+
+		var doneCallback = function(result) {
+			// we reset listeners because there might be a new job
+			eventListeners = {};
+			return sendMessage("finishedWorking", result);
+		};
+
 		sendMessage("startWorking");
 		if (defined[methodNameSync] && typeof defined[methodNameSync] === "function") {
 			try {
-				var result = defined[methodNameSync](args, progressCallback);
-				return sendMessage("finishedWorking", result);
+				var result = defined[methodNameSync](args, progressCallback, registerEvents);
+				doneCallback(result);
 			} catch (e) {
 				return sendMessage("error", e);
 			}
@@ -93,9 +110,9 @@ var handler = {
 				if (error) {
 					return sendMessage("error", error);
 				} else {
-					return sendMessage("finishedWorking", result);
+					doneCallback(result);
 				}
-			}, progressCallback);
+			}, progressCallback, registerEvents);
 		} else {
 			return sendMessage("error", methodName + " and " + methodNameSync + " are not available in the worker");
 		}
@@ -109,6 +126,8 @@ self.onmessage = function(e) {
 	var data = message[1];
 	if (typeof handler[messageName] === "function") {
 		handler[messageName](data);
+	} else if (typeof eventListeners[messageName] === "function") {
+		eventListeners[messageName](data);
 	}
 };
 
