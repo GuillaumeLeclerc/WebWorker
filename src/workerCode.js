@@ -9,6 +9,8 @@ function sendMessage(evtName, data) {
 
 var defined = null;
 
+var eventListeners = {};
+
 function define(dependencies, definition) {
 	"use strict";
 	if (defined !== null) {
@@ -21,10 +23,23 @@ function define(dependencies, definition) {
 		sendMessage("error", new Error("The second argument of the define function should be an object"));
 	}
 
+	var availableMethods = [];
+
+	for (var j in definition) {
+		if (j !== "load" && j !== "loadSync") { //we don't want to expose the loading methods
+			j = j.replace(/Sync$/, "");
+			availableMethods.push(j);
+		}
+	}
+
+	var loadedCallback = function() {
+		sendMessage("loaded", availableMethods);
+	};
+
 	if (definition.loadSync && typeof definition.loadSync === "function") {
 		try {
 			definition.loadSync();
-			sendMessage("loaded");
+			loadedCallback();
 		} catch (error) {
 			sendMessage("error", error);
 		}
@@ -33,11 +48,11 @@ function define(dependencies, definition) {
 			if (error) {
 				sendMessage("error", error);
 			} else {
-				sendMessage("loaded");
+				loadedCallback();
 			}
 		});
 	} else {
-		sendMessage("loaded");
+		loadedCallback();
 	}
 
 	defined = definition;
@@ -56,31 +71,50 @@ var handler = {
 		}
 	},
 
-	work : function(args) {
+	work : function(params) {
 		"use strict";
+
+		var methodName = params[0];
+		var methodNameSync = methodName + "Sync";
+		var args = params[1];
 		
 		var progressCallback = function(progress) {
 			sendMessage("progress", progress);
 		};
 
+		var registerEvents = function(events) {
+			for (var i in events) {
+				if (typeof events[i] === "function") {
+					eventListeners["custom-"+i] = events[i];
+				}
+			}
+			sendMessage("eventsRegistered");
+		};
+
+		var doneCallback = function(result) {
+			// we reset listeners because there might be a new job
+			eventListeners = {};
+			return sendMessage("finishedWorking", result);
+		};
+
 		sendMessage("startWorking");
-		if (defined.workSync && typeof defined.workSync === "function") {
+		if (defined[methodNameSync] && typeof defined[methodNameSync] === "function") {
 			try {
-				var result = defined.workSync(args, progressCallback);
-				return sendMessage("finishedWorking", result);
+				var result = defined[methodNameSync](args, progressCallback, registerEvents);
+				doneCallback(result);
 			} catch (e) {
 				return sendMessage("error", e);
 			}
-		} else if (defined.work && typeof defined.work === "function") {
-			defined.work(args, function(error, result) {
+		} else if (defined[methodName] && typeof defined[methodName] === "function") {
+			defined[methodName](args, function(error, result) {
 				if (error) {
 					return sendMessage("error", error);
 				} else {
-					return sendMessage("finishedWorking", result);
+					doneCallback(result);
 				}
-			}, progressCallback);
+			}, progressCallback, registerEvents);
 		} else {
-			return sendMessage("error", "No work or workSync defined in the worker");
+			return sendMessage("error", methodName + " and " + methodNameSync + " are not available in the worker");
 		}
 	}
 };
@@ -92,6 +126,8 @@ self.onmessage = function(e) {
 	var data = message[1];
 	if (typeof handler[messageName] === "function") {
 		handler[messageName](data);
+	} else if (typeof eventListeners[messageName] === "function") {
+		eventListeners[messageName](data);
 	}
 };
 
