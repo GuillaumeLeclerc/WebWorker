@@ -238,6 +238,21 @@ QUnit.test("We can send custom event to async jobs", function(assert) {
 	task1.sendEvent("event", data);
 });
 
+QUnit.test("We can send custom event to async jobs way after their creation", function(assert) {
+	"use strict";
+	var done = assert.async();
+	var data = Math.random();
+	var w = new WebWorker("test1-f.js");
+	var task1 = w .doWork("work");
+	task1.then(function(result) {
+		assert.equal(result, data, "the data should be the same as transmitted");
+		done();
+	});
+	setTimeout(function() {
+		task1.sendEvent("event", data);
+	}, 1000);
+});
+
 QUnit.test("Custom events are cleared between jobs", function(assert) {
 	"use strict";
 	var done = assert.async();

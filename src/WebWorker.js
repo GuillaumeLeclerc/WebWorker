@@ -311,22 +311,27 @@ function WorkerPool(minSize, maxSize, script) {
 	 that.doWork = function() {
 		var args = arguments;
 		var eventQueue = [];
+		var task = null;
 		var toReturn = getWorker().then(function(worker) {
-			var promise = worker.doWork.apply(worker, args);
+			task = worker.doWork.apply(worker, args);
 			while (eventQueue.length > 0) {
 				var event = eventQueue.shift();
-				promise.sendEvent(event.name, event.data);
+				task.sendEvent(event.name, event.data);
 			}
-			return promise;
+			return task;
 		}).fail(function(error) {
 			throw error;
 		});
 
 		toReturn.sendEvent = function(name , data) {
-			eventQueue.push({
-				name : name,
-				data : data
-			});
+			if (task === null) {
+				eventQueue.push({
+					name : name,
+					data : data
+				});
+			} else {
+				task.sendEvent(name, data);
+			}
 		};
 
 		return toReturn;
