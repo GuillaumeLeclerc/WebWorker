@@ -286,3 +286,19 @@ QUnit.test("We can send custom event to async jobs in a Worker Pool", function(a
 });
 
 
+QUnit.test("Progress funciton is working in batch processing", function(assert) {
+	"use strict";
+	var w = new WorkerPool(3,3,"test1-d.js");
+	var done = assert.async();
+	var nbProgess = Math.round(Math.random()*19) + 1;
+	var lastProgress = -1;
+	var result = w.doWork("work", [nbProgess], function progress(p) {
+		assert.equal(p, lastProgress + 1, "Progress call are in order");
+		lastProgress = p;
+	});
+	result.then(function(res) {
+		assert.equal(res[0], nbProgess, "The number of progress was correctly passed to the worker");
+		assert.equal(lastProgress, nbProgess - 1, "All the progress function were called");
+		done();
+	});
+});

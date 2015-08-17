@@ -337,10 +337,10 @@ function WorkerPool(minSize, maxSize, script) {
 		return toReturn;
 	};
 
-	that.doWorkBatch = function(methodName, jobs) {
+	that.doWorkBatch = function(methodName, jobs, progress) {
 		var promises = [];
 		for (var i in jobs) {
-			var prom = that.doWork(methodName, jobs[i]);
+			var prom = that.doWork(methodName, jobs[i], progress);
 			promises.push(prom);
 		}
 		return Q.all(promises);
